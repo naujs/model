@@ -1,0 +1,30 @@
+{
+  "name": "@naujs/model",
+  "version": "0.0.1",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/naujs/model.git"
+  },
+  "author": "Tan Nguyen",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/naujs/model/issues"
+  },
+  "homepage": "https://github.com/naujs/model#readme",
+  "devDependencies": {
+    "@naujs/gulp-tasks": "^0.0.9",
+    "gulp": "^3.9.0"
+  },
+  "dependencies": {
+    "@naujs/component": "0.0.5",
+    "@naujs/util": "0.0.3",
+    "lodash": "^3.10.1",
+    "sprintf-js": "^1.0.3",
+    "validator": "^4.4.0"
+  }
+}
