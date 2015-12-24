@@ -178,8 +178,13 @@ class Model extends Component {
     });
 
     this._errors = errors;
+
+    if (!_.isEmpty(this._errors)) {
+      return false;
+    }
+
     this.onAfterValidate(options);
-    return _.isEmpty(this._errors);
+    return true;
   }
 
   onAfterValidate(options) {

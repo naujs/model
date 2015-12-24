@@ -218,8 +218,13 @@ var Model = (function (_Component) {
       });
 
       this._errors = errors;
+
+      if (!_.isEmpty(this._errors)) {
+        return false;
+      }
+
       this.onAfterValidate(options);
-      return _.isEmpty(this._errors);
+      return true;
     }
   }, {
     key: 'onAfterValidate',

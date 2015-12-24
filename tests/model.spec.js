@@ -145,6 +145,16 @@ describe('Model', () => {
 
       expect(test.onAfterValidate).toHaveBeenCalled();
     });
+
+    it('should be called only if the validation succeeds', () => {
+      test.age = 200;
+
+      test.validate({
+        sync: true
+      });
+
+      expect(test.onAfterValidate).not.toHaveBeenCalled();
+    });
   });
 
 });
