@@ -75,6 +75,8 @@ var Model = (function (_Component) {
   }, {
     key: 'validate',
     value: function validate() {
+      var _this3 = this;
+
       var options = arguments.length <= 0 || arguments[0] === undefined ? {} : arguments[0];
 
       options = _.defaults(options, {
@@ -86,20 +88,30 @@ var Model = (function (_Component) {
 
       // Phase 2: Value validation
       if (options.sync) {
-        return this._syncValidate(options);
+        var result = this._syncValidate(options);
+        if (!result) {
+          this.trigger('invalid', this.getErrors());
+        }
+        return result;
       }
 
-      return this._asyncValidate(options);
+      return this._asyncValidate(options).then(function (result) {
+        if (!result) {
+          _this3.trigger('invalid', _this3.getErrors());
+        }
+
+        return result;
+      });
     }
   }, {
     key: '_validateEachAttribute',
     value: function _validateEachAttribute(fn, sync) {
-      var _this3 = this;
+      var _this4 = this;
 
       var attributes = this.attributes();
 
       _.each(attributes, function (attrOpts, attribute) {
-        var value = _this3[attribute];
+        var value = _this4[attribute];
         var rules = attrOpts.rules || {};
 
         if (_.isEmpty(rules)) {
@@ -107,7 +119,7 @@ var Model = (function (_Component) {
         }
 
         _.each(rules, function (ruleOpts, rule) {
-          var validate = _this3[rule];
+          var validate = _this4[rule];
 
           if (!validate) {
             validate = validators[rule];
@@ -141,7 +153,7 @@ var Model = (function (_Component) {
   }, {
     key: '_asyncValidate',
     value: function _asyncValidate() {
-      var _this4 = this;
+      var _this5 = this;
 
       var options = arguments.length <= 0 || arguments[0] === undefined ? {} : arguments[0];
 
@@ -163,7 +175,7 @@ var Model = (function (_Component) {
         var errors = {};
         var tasks = [];
 
-        _this4._validateEachAttribute(function (attribute, validationResult) {
+        _this5._validateEachAttribute(function (attribute, validationResult) {
           if (!validationResult.then) {
             validationResult = new Promise(function (resolve, reject) {
               resolve(validationResult);
@@ -179,15 +191,15 @@ var Model = (function (_Component) {
         });
 
         return Promise.all(tasks).then(function () {
-          _this4._errors = errors;
-          return _.isEmpty(_this4._errors);
+          _this5._errors = errors;
+          return _.isEmpty(_this5._errors);
         });
       }).then(function (result) {
         if (!result) {
           return false;
         }
 
-        var onAfterValidate = _this4.onAfterValidate(options);
+        var onAfterValidate = _this5.onAfterValidate(options);
 
         if (onAfterValidate.then) {
           return onAfterValidate.then(function () {

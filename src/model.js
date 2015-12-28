@@ -57,10 +57,20 @@ class Model extends Component {
 
     // Phase 2: Value validation
     if (options.sync) {
-      return this._syncValidate(options);
+      var result = this._syncValidate(options);
+      if (!result) {
+        this.trigger('invalid', this.getErrors());
+      }
+      return result;
     }
 
-    return this._asyncValidate(options);
+    return this._asyncValidate(options).then((result) => {
+      if (!result) {
+        this.trigger('invalid', this.getErrors());
+      }
+
+      return result;
+    });
   }
 
   _validateEachAttribute(fn, sync) {

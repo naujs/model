@@ -116,6 +116,37 @@ describe('Model', () => {
         expect(console.warn).toHaveBeenCalledWith('address violates string type validation with value 1 of type number');
       }).then(done, fail);
     });
+
+    it('should trigger invalid event in asynchronous validation', (done) => {
+      var test = new TestClass({
+        name: 'Tan'
+      });
+
+      var spy = jasmine.createSpy();
+
+      test.on('invalid', spy);
+
+      test.validate().then((result) => {
+        expect(result).toBe(false);
+        expect(spy).toHaveBeenCalledWith(test.getErrors());
+      }).then(done, fail);
+    });
+
+    it('should trigger invalid event in synchronous validation', () => {
+      var test = new TestClass({
+        name: 'Tan'
+      });
+
+      var spy = jasmine.createSpy();
+
+      test.on('invalid', spy);
+
+      test.validate({
+        sync: true
+      });
+
+      expect(spy).toHaveBeenCalledWith(test.getErrors());
+    });
   });
 
   describe('#onAfterValidate', () => {
