@@ -15,7 +15,7 @@ class Model extends Component {
   }
 
   attributes() {
-    throw 'Must be implemented';
+    return {};
   }
 
   onBeforeValidate(options) {
