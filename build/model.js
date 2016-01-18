@@ -26,18 +26,70 @@ var Model = function (_Component) {
 
     var _this = _possibleConstructorReturn(this, Object.getPrototypeOf(Model).call(this));
 
-    _.each(attributes, function (v, k) {
-      _this[k] = v;
-    });
-
+    _this.setAttributes(attributes);
     _this._errors = {};
     return _this;
   }
 
+  /**
+   * Defines all attributes that this model can accept
+   * @method Model#attributes
+   * @return {Object}
+   */
+
   _createClass(Model, [{
+    key: 'attributes',
+    value: function attributes() {
+      return {};
+    }
+
+    /**
+     * Gets all the current attributes. Only those defined in {@link Model#attributes}
+     * can be get
+     * @method Model#getAttributes
+     * @return {Any}
+     */
+
+  }, {
     key: 'getAttributes',
     value: function getAttributes() {
-      return {};
+      var _this2 = this;
+
+      var definedAttributes = this.attributes();
+      var currentAttributes = {};
+
+      _.each(definedAttributes, function (value, key) {
+        currentAttributes[key] = _this2[key];
+      });
+
+      return currentAttributes;
+    }
+
+    /**
+     * Sets attributes for this model. Only those defined
+     * in {@link Model#attributes} can be set
+     * Due to cross-browser issues, setting the attribute directly
+     * via normal this.attributeName is still possible and by-passes all the checks
+     * TODO: Apply Proxy to strictly prohibit setting undefined attributes
+     * @method Model#setAttributes
+     * @param {Object}
+     */
+
+  }, {
+    key: 'setAttributes',
+    value: function setAttributes() {
+      var _this3 = this;
+
+      var attributes = arguments.length <= 0 || arguments[0] === undefined ? {} : arguments[0];
+
+      var definedAttributes = this.attributes();
+      _.each(attributes, function (value, key) {
+        if (definedAttributes[key]) {
+          _this3[key] = value;
+        }
+      });
+
+      return this;
     }
   }, {
     key: 'onBeforeValidate',
@@ -47,16 +99,16 @@ var Model = function (_Component) {
   }, {
     key: '_typeValidate',
     value: function _typeValidate(options) {
-      var _this2 = this;
+      var _this4 = this;
 
-      var attributes = this.getAttributes();
+      var attributes = this.attributes();
 
       _.each(attributes, function (attrOpts, attribute) {
         if (!attrOpts.type) {
           return;
         }
 
-        var value = _this2[attribute];
+        var value = _this4[attribute];
         // The attribute is not provided or null, assuming that
         // the attribute is optional and let the 2nd
         // phase handle it
@@ -75,7 +127,7 @@ var Model = function (_Component) {
   }, {
     key: 'validate',
     value: function validate() {
-      var _this3 = this;
+      var _this5 = this;
 
       var options = arguments.length <= 0 || arguments[0] === undefined ? {} : arguments[0];
 
@@ -97,7 +149,7 @@ var Model = function (_Component) {
 
       return this._asyncValidate(options).then(function (result) {
         if (!result) {
-          _this3.trigger('invalid', _this3.getErrors());
+          _this5.trigger('invalid', _this5.getErrors());
         }
 
         return result;
@@ -106,12 +158,12 @@ var Model = function (_Component) {
   }, {
     key: '_validateEachAttribute',
     value: function _validateEachAttribute(fn, sync) {
-      var _this4 = this;
+      var _this6 = this;
 
-      var attributes = this.getAttributes();
+      var attributes = this.attributes();
 
       _.each(attributes, function (attrOpts, attribute) {
-        var value = _this4[attribute];
+        var value = _this6[attribute];
         var rules = attrOpts.rules || {};
 
         if (_.isEmpty(rules)) {
@@ -119,7 +171,7 @@ var Model = function (_Component) {
         }
 
         _.each(rules, function (ruleOpts, rule) {
-          var validate = _this4[rule];
+          var validate = _this6[rule];
 
           if (!validate) {
             validate = validators[rule];
@@ -153,11 +205,11 @@ var Model = function (_Component) {
   }, {
     key: '_asyncValidate',
     value: function _asyncValidate() {
-      var _this5 = this;
+      var _this7 = this;
 
       var options = arguments.length <= 0 || arguments[0] === undefined ? {} : arguments[0];
 
-      var attributes = this.getAttributes();
+      var attributes = this.attributes();
       var Promise = util.getPromise();
 
       var onBeforeValidate = this.onBeforeValidate(options);
@@ -175,7 +227,7 @@ var Model = function (_Component) {
         var errors = {};
         var tasks = [];
 
-        _this5._validateEachAttribute(function (attribute, validationResult) {
+        _this7._validateEachAttribute(function (attribute, validationResult) {
           if (!validationResult.then) {
             validationResult = new Promise(function (resolve, reject) {
               resolve(validationResult);
@@ -191,15 +243,15 @@ var Model = function (_Component) {
         });
 
         return Promise.all(tasks).then(function () {
-          _this5._errors = errors;
-          return _.isEmpty(_this5._errors);
+          _this7._errors = errors;
+          return _.isEmpty(_this7._errors);
         });
       }).then(function (result) {
         if (!result) {
           return false;
         }
 
-        var onAfterValidate = _this5.onAfterValidate(options);
+        var onAfterValidate = _this7.onAfterValidate(options);
 
         if (onAfterValidate.then) {
           return onAfterValidate.then(function () {

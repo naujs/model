@@ -3,7 +3,7 @@
 var Model = require('../build/model');
 
 class TestClass extends Model {
-  getAttributes() {
+  attributes() {
     return {
       'name': {
         type: Model.Types.string,
@@ -34,6 +34,38 @@ class TestClass extends Model {
 }
 
 describe('Model', () => {
+
+  describe('#setAttributes', () => {
+    it('should only set attributes that are defined', () => {
+      var instance = new TestClass();
+      instance.setAttributes({
+        name: 'Tan Nguyen',
+        weirdStuff: 'should not be set'
+      });
+
+      expect(instance.name).toEqual('Tan Nguyen');
+      expect(instance.weirdStuff).not.toBeDefined();
+    });
+  });
+
+  describe('#getAttributes', () => {
+    it('should only set attributes that are defined', () => {
+      var instance = new TestClass();
+      instance.setAttributes({
+        name: 'Tan Nguyen'
+      });
+
+      instance.weirdStuff = 'really weird';
+
+      expect(instance.name).toEqual('Tan Nguyen');
+      expect(instance.getAttributes()).toEqual({
+        name: 'Tan Nguyen',
+        age: undefined,
+        address: undefined
+      });
+    });
+  });
+
   describe('#onBeforeValidate', () => {
     var test;
 

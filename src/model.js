@@ -8,15 +8,54 @@ class Model extends Component {
   constructor(attributes = {}) {
     super();
 
-    _.each(attributes, (v, k) => {
-      this[k] = v;
-    });
-
+    this.setAttributes(attributes);
     this._errors = {};
   }
 
-  getAttributes() {
+  /**
+   * Defines all attributes that this model can accept
+   * @method Model#attributes
+   * @return {Object}
+   */
+  attributes() {
     return {};
+  }
+
+  /**
+   * Gets all the current attributes. Only those defined in {@link Model#attributes}
+   * can be get
+   * @method Model#getAttributes
+   * @return {Any}
+   */
+  getAttributes() {
+    let definedAttributes = this.attributes();
+    let currentAttributes = {};
+
+    _.each(definedAttributes, (value, key) => {
+      currentAttributes[key] = this[key];
+    });
+
+    return currentAttributes;
+  }
+
+  /**
+   * Sets attributes for this model. Only those defined
+   * in {@link Model#attributes} can be set
+   * Due to cross-browser issues, setting the attribute directly
+   * via normal this.attributeName is still possible and by-passes all the checks
+   * TODO: Apply Proxy to strictly prohibit setting undefined attributes
+   * @method Model#setAttributes
+   * @param {Object}
+   */
+  setAttributes(attributes = {}) {
+    var definedAttributes = this.attributes();
+    _.each(attributes, (value, key) => {
+      if (definedAttributes[key]) {
+        this[key] = value;
+      }
+    });
+
+    return this;
   }
 
   onBeforeValidate(options) {
@@ -24,7 +63,7 @@ class Model extends Component {
   }
 
   _typeValidate(options) {
-    let attributes = this.getAttributes();
+    let attributes = this.attributes();
 
     _.each(attributes, (attrOpts, attribute) => {
       if (!attrOpts.type) {
@@ -75,7 +114,7 @@ class Model extends Component {
   }
 
   _validateEachAttribute(fn, sync) {
-    let attributes = this.getAttributes();
+    let attributes = this.attributes();
 
     _.each(attributes, (attrOpts, attribute) => {
       let value = this[attribute];
@@ -119,7 +158,7 @@ class Model extends Component {
   }
 
   _asyncValidate(options = {}) {
-    let attributes = this.getAttributes();
+    let attributes = this.attributes();
     let Promise = util.getPromise();
 
     let onBeforeValidate = this.onBeforeValidate(options);
