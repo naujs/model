@@ -3,7 +3,7 @@
 var Model = require('../build/model');
 
 class TestClass extends Model {
-  attributes() {
+  getAttributes() {
     return {
       'name': {
         type: Model.Types.string,

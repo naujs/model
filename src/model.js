@@ -7,6 +7,7 @@ var Component = require('@naujs/component')
 class Model extends Component {
   constructor(attributes = {}) {
     super();
+
     _.each(attributes, (v, k) => {
       this[k] = v;
     });
@@ -14,7 +15,7 @@ class Model extends Component {
     this._errors = {};
   }
 
-  attributes() {
+  getAttributes() {
     return {};
   }
 
@@ -23,7 +24,7 @@ class Model extends Component {
   }
 
   _typeValidate(options) {
-    let attributes = this.attributes();
+    let attributes = this.getAttributes();
 
     _.each(attributes, (attrOpts, attribute) => {
       if (!attrOpts.type) {
@@ -74,7 +75,7 @@ class Model extends Component {
   }
 
   _validateEachAttribute(fn, sync) {
-    let attributes = this.attributes();
+    let attributes = this.getAttributes();
 
     _.each(attributes, (attrOpts, attribute) => {
       let value = this[attribute];
@@ -118,7 +119,7 @@ class Model extends Component {
   }
 
   _asyncValidate(options = {}) {
-    let attributes = this.attributes();
+    let attributes = this.getAttributes();
     let Promise = util.getPromise();
 
     let onBeforeValidate = this.onBeforeValidate(options);
@@ -173,7 +174,7 @@ class Model extends Component {
   }
 
   _syncValidate(options = {}) {
-    let attributes = this.attributes();
+    let attributes = this.getAttributes();
     let errors = {};
 
     if (!this.onBeforeValidate(options)) {

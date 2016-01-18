@@ -35,8 +35,8 @@ var Model = function (_Component) {
   }
 
   _createClass(Model, [{
-    key: 'attributes',
-    value: function attributes() {
+    key: 'getAttributes',
+    value: function getAttributes() {
       return {};
     }
   }, {
@@ -49,7 +49,7 @@ var Model = function (_Component) {
     value: function _typeValidate(options) {
       var _this2 = this;
 
-      var attributes = this.attributes();
+      var attributes = this.getAttributes();
 
       _.each(attributes, function (attrOpts, attribute) {
         if (!attrOpts.type) {
@@ -108,7 +108,7 @@ var Model = function (_Component) {
     value: function _validateEachAttribute(fn, sync) {
       var _this4 = this;
 
-      var attributes = this.attributes();
+      var attributes = this.getAttributes();
 
       _.each(attributes, function (attrOpts, attribute) {
         var value = _this4[attribute];
@@ -157,7 +157,7 @@ var Model = function (_Component) {
 
       var options = arguments.length <= 0 || arguments[0] === undefined ? {} : arguments[0];
 
-      var attributes = this.attributes();
+      var attributes = this.getAttributes();
       var Promise = util.getPromise();
 
       var onBeforeValidate = this.onBeforeValidate(options);
@@ -215,7 +215,7 @@ var Model = function (_Component) {
     value: function _syncValidate() {
       var options = arguments.length <= 0 || arguments[0] === undefined ? {} : arguments[0];
 
-      var attributes = this.attributes();
+      var attributes = this.getAttributes();
       var errors = {};
 
       if (!this.onBeforeValidate(options)) {
