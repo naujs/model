@@ -248,6 +248,10 @@ class Model extends Component {
   getErrors() {
     return this._errors;
   }
+
+  toJSON() {
+    return this.getAttributes();
+  }
 }
 
 Model.Types = require('./types');

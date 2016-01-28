@@ -1,6 +1,6 @@
 'use strict';
 
-var Model = require('../build/model');
+var Model = require('../');
 
 class TestClass extends Model {
   attributes() {
