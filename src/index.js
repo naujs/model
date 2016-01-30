@@ -88,9 +88,9 @@ class Model extends Component {
   }
 
   validate(options = {}) {
-    options = _.defaults(options, {
+    options = _.chain(options).clone().defaults({
       sync: false
-    });
+    }).value();
 
     // Phase 1: Type validation
     this._typeValidate(options);

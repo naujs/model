@@ -131,9 +131,9 @@ var Model = function (_Component) {
 
       var options = arguments.length <= 0 || arguments[0] === undefined ? {} : arguments[0];
 
-      options = _.defaults(options, {
+      options = _.chain(options).clone().defaults({
         sync: false
-      });
+      }).value();
 
       // Phase 1: Type validation
       this._typeValidate(options);
