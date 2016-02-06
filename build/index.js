@@ -17,7 +17,7 @@ var Component = require('@naujs/component'),
     sprintf = require('sprintf-js').sprintf,
     pluralize = require('pluralize');
 
-// Private methods
+// Helper methods
 // Class
 function getModelName() {
   var name = this.modelName;
@@ -27,8 +27,8 @@ function getModelName() {
   return name;
 }
 
-function getPlural() {
-  var plural = this.plural;
+function getPluralName() {
+  var plural = this.pluralName;
   if (!plural) {
     plural = pluralize(getModelName.call(this), 2);
   }
@@ -351,5 +351,8 @@ var Model = (function (_Component) {
 })(Component);
 
 Model.Types = require('./types');
+Model.getProperties = getProperties;
+Model.getModelName = getModelName;
+Model.getPluralName = getPluralName;
 
 module.exports = Model;
