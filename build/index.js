@@ -1,8 +1,8 @@
 'use strict';
 
-var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol ? "symbol" : typeof obj; };
+var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
 
-var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+function _typeof(obj) { return obj && typeof Symbol !== "undefined" && obj.constructor === Symbol ? "symbol" : typeof obj; }
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
@@ -14,9 +14,64 @@ var Component = require('@naujs/component'),
     util = require('@naujs/util'),
     _ = require('lodash'),
     validators = require('./validators'),
-    sprintf = require('sprintf-js').sprintf;
+    sprintf = require('sprintf-js').sprintf,
+    pluralize = require('pluralize');
 
-var Model = function (_Component) {
+// Private methods
+// Class
+function getModelName() {
+  var name = this.modelName;
+  if (!name) {
+    throw 'Must set name for a model';
+  }
+  return name;
+}
+
+function getPlural() {
+  var plural = this.plural;
+  if (!plural) {
+    plural = pluralize(getModelName.call(this), 2);
+  }
+  return plural;
+}
+
+function getProperties() {
+  var properties = this.properties || {};
+  if (_.isEmpty(properties)) {
+    console.warn('Empty properties');
+  }
+  return properties;
+}
+
+// Instance
+function buildProperties() {
+  var _this = this;
+
+  var properties = getProperties.call(this.getClass());
+  _.each(properties, function (options, name) {
+    defineProperty(_this, name, options);
+  });
+}
+
+function defineProperty(instance, name, options) {
+  var Model = instance.getClass();
+  var setter = (Model.setters || {})[name];
+  var getter = (Model.getters || {})[name];
+  var defaultValue = (Model.defaults || {})[name];
+
+  Object.defineProperty(instance, name, {
+    get: function get() {
+      var value = instance._attributes[name];
+      return getter ? getter(value) : value;
+    },
+
+    set: function set(value) {
+      instance._attributes[name] = value;
+    }
+  });
+}
+
+var Model = (function (_Component) {
   _inherits(Model, _Component);
 
   function Model() {
@@ -24,45 +79,27 @@ var Model = function (_Component) {
 
     _classCallCheck(this, Model);
 
-    var _this = _possibleConstructorReturn(this, Object.getPrototypeOf(Model).call(this));
+    var _this2 = _possibleConstructorReturn(this, Object.getPrototypeOf(Model).call(this));
 
-    _this.setAttributes(attributes);
-    _this._errors = {};
-    return _this;
+    _this2._attributes = {};
+    buildProperties.call(_this2);
+
+    _this2.setAttributes(attributes);
+    _this2._errors = {};
+    return _this2;
   }
 
   /**
-   * Defines all attributes that this model can accept
-   * @method Model#attributes
-   * @return {Object}
+   * Gets all the current attributes. Only those defined in {@link Model#attributes}
+   * can be get
+   * @method Model#getAttributes
+   * @return {Any}
    */
 
   _createClass(Model, [{
-    key: 'attributes',
-    value: function attributes() {
-      return {};
-    }
-
-    /**
-     * Gets all the current attributes. Only those defined in {@link Model#attributes}
-     * can be get
-     * @method Model#getAttributes
-     * @return {Any}
-     */
-
-  }, {
     key: 'getAttributes',
     value: function getAttributes() {
-      var _this2 = this;
-
-      var definedAttributes = this.attributes();
-      var currentAttributes = {};
-
-      _.each(definedAttributes, function (value, key) {
-        currentAttributes[key] = _this2[key];
-      });
-
-      return currentAttributes;
+      return _.clone(this._attributes);
     }
 
     /**
@@ -82,9 +119,9 @@ var Model = function (_Component) {
 
       var attributes = arguments.length <= 0 || arguments[0] === undefined ? {} : arguments[0];
 
-      var definedAttributes = this.attributes();
+      var properties = getProperties.call(this.getClass());
       _.each(attributes, function (value, key) {
-        if (definedAttributes[key]) {
+        if (properties[key]) {
           _this3[key] = value;
         }
       });
@@ -101,27 +138,27 @@ var Model = function (_Component) {
     value: function _typeValidate(options) {
       var _this4 = this;
 
-      var attributes = this.attributes();
+      var properties = getProperties.call(this.getClass());
 
-      _.each(attributes, function (attrOpts, attribute) {
-        if (!attrOpts.type) {
+      _.each(properties, function (options, property) {
+        if (!options.type) {
           return;
         }
 
-        var value = _this4[attribute];
-        // The attribute is not provided or null, assuming that
-        // the attribute is optional and let the 2nd
+        var value = _this4[property];
+        // The property is not provided or null, assuming that
+        // the property is optional and let the 2nd
         // phase handle it
         if (value === void 0 || value === null) {
           return;
         }
 
-        if (attrOpts.type(value)) {
+        if (options.type(value)) {
           return;
         }
 
         // The first phase aims to provide extra information for the developers
-        console.warn(attribute + ' violates ' + attrOpts.type.name + ' type validation with value ' + value + ' of type ' + (typeof value === 'undefined' ? 'undefined' : _typeof(value)));
+        console.warn(property + ' violates ' + options.type.name + ' type validation with value ' + value + ' of type ' + (typeof value === 'undefined' ? 'undefined' : _typeof(value)));
       });
     }
   }, {
@@ -160,11 +197,11 @@ var Model = function (_Component) {
     value: function _validateEachAttribute(fn, sync) {
       var _this6 = this;
 
-      var attributes = this.attributes();
+      var properties = getProperties.call(this.getClass());
 
-      _.each(attributes, function (attrOpts, attribute) {
-        var value = _this6[attribute];
-        var rules = attrOpts.rules || {};
+      _.each(properties, function (options, property) {
+        var value = _this6[property];
+        var rules = options.rules || {};
 
         if (_.isEmpty(rules)) {
           return;
@@ -193,12 +230,12 @@ var Model = function (_Component) {
           }
 
           if (result) {
-            msgOpts.attribute = attribute;
+            msgOpts.property = property;
             msgOpts.value = value;
             result = sprintf(result, msgOpts);
           }
 
-          fn(attribute, result);
+          fn(property, result);
         });
       });
     }
@@ -209,7 +246,6 @@ var Model = function (_Component) {
 
       var options = arguments.length <= 0 || arguments[0] === undefined ? {} : arguments[0];
 
-      var attributes = this.attributes();
       var Promise = util.getPromise();
 
       var onBeforeValidate = this.onBeforeValidate(options);
@@ -267,7 +303,6 @@ var Model = function (_Component) {
     value: function _syncValidate() {
       var options = arguments.length <= 0 || arguments[0] === undefined ? {} : arguments[0];
 
-      var attributes = this.getAttributes();
       var errors = {};
 
       if (!this.onBeforeValidate(options)) {
@@ -313,7 +348,7 @@ var Model = function (_Component) {
   }]);
 
   return Model;
-}(Component);
+})(Component);
 
 Model.Types = require('./types');
 

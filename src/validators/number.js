@@ -23,19 +23,19 @@ module.exports = (value, options = {}) => {
     if (len < min || len > max) {
       return options.message
         ? options.message
-        : '%(attribute)s must be less than %(max)d and greater than %(min)d';
+        : '%(property)s must be less than %(max)d and greater than %(min)d';
     }
   } else if (min !== void(0)) {
     if (len < min) {
       return options.message
         ? options.message
-        : '%(attribute)s must be greater than %(min)d';
+        : '%(property)s must be greater than %(min)d';
     }
   } else if (max !== void(0)) {
     if (len > max) {
       return options.message
         ? options.message
-        : '%(attribute)s must be less than %(max)d';
+        : '%(property)s must be less than %(max)d';
     }
   }
 

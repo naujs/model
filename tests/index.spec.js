@@ -1,92 +1,182 @@
 'use strict';
 
-var Model = require('../');
+var Model = require('..');
 
-class TestClass extends Model {
-  attributes() {
-    return {
-      'name': {
-        type: Model.Types.string,
-        rules: {
-          required: true,
-          len: {
-            min: 4
-          },
-          regex: {
-            pattern: /^Tan\sNguyen$/
-          }
-        }
-      },
-      'age': {
-        type: Model.Types.number,
-        rules: {
-          number: {
-            min: 0,
-            max: 100
-          }
-        }
-      },
-      'address': {
-        type: Model.Types.string
-      }
-    };
-  }
+class Dummy extends Model {
+
 }
 
+Dummy.modelName = 'dummy';
+Dummy.properties = {
+  'name': {
+    type: Model.Types.string,
+    rules: {
+      required: true,
+      len: {
+        min: 4
+      },
+      regex: {
+        pattern: /^Tan\sNguyen$/
+      }
+    }
+  },
+  'age': {
+    type: Model.Types.number,
+    rules: {
+      number: {
+        min: 0,
+        max: 100
+      }
+    }
+  },
+  'address': {
+    type: Model.Types.string
+  }
+};
+
 describe('Model', () => {
+  var dummy;
+
+  beforeEach(() => {
+    dummy = new Dummy();
+  });
+
+  describe('setters/getters', () => {
+    it('should store attributes in _attributes', () => {
+      dummy.name = 'test';
+      expect(dummy._attributes.name).toEqual('test');
+    });
+
+    it('should get attributes from _attributes', () => {
+      dummy.name = 'test';
+      expect(dummy.name).toEqual('test');
+    });
+  });
 
   describe('#setAttributes', () => {
     it('should only set attributes that are defined', () => {
-      var instance = new TestClass();
-      instance.setAttributes({
+      dummy.setAttributes({
         name: 'Tan Nguyen',
         weirdStuff: 'should not be set'
       });
 
-      expect(instance.name).toEqual('Tan Nguyen');
-      expect(instance.weirdStuff).not.toBeDefined();
+      expect(dummy.name).toEqual('Tan Nguyen');
+      expect(dummy.weirdStuff).not.toBeDefined();
     });
   });
 
   describe('#getAttributes', () => {
     it('should only set attributes that are defined', () => {
-      var instance = new TestClass();
-      instance.setAttributes({
+      dummy.setAttributes({
         name: 'Tan Nguyen'
       });
 
-      instance.weirdStuff = 'really weird';
+      dummy.weirdStuff = 'really weird';
 
-      expect(instance.name).toEqual('Tan Nguyen');
-      expect(instance.getAttributes()).toEqual({
-        name: 'Tan Nguyen',
-        age: undefined,
-        address: undefined
+      expect(dummy.name).toEqual('Tan Nguyen');
+      expect(dummy.getAttributes()).toEqual({
+        name: 'Tan Nguyen'
       });
     });
   });
 
-  describe('#onBeforeValidate', () => {
-    var test;
-
+  describe('#validate', () => {
     beforeEach(() => {
-      test = new TestClass({
-        name: 'Tan Nguyen'
+      dummy.name = 'Tan Nguyen';
+      spyOn(console, 'warn').and.callThrough();
+    });
+
+    it('should validate the attributes asynchronously', () => {
+      return dummy.validate().then((result) => {
+        expect(result).toBe(true);
+      });
+    });
+
+    it('should validate the attributes synchronously', () => {
+      expect(dummy.validate({
+        sync: true
+      })).toBe(true);
+    });
+
+    it('should store errors', () => {
+      dummy = new Dummy({
+        name: 'Ta1',
+        age: 200
       });
 
-      spyOn(test, 'onBeforeValidate').and.callFake(() => {
+      return dummy.validate().then((result) => {
+        expect(result).toBe(false);
+        expect(dummy.getErrors()).toEqual({
+          name: [
+            'name must be greater than 4 characters',
+            'Ta1 is not valid'
+          ],
+          age: ['age must be less than 100 and greater than 0']
+        });
+      });
+    });
+
+    it('should validate type and print warning', () => {
+      dummy = new Dummy({
+        name: 'Tan Nguyen',
+        address: 1
+      });
+
+      return dummy.validate().then((result) => {
+        expect(result).toBe(true);
+        expect(console.warn).toHaveBeenCalledWith('address violates string type validation with value 1 of type number');
+      });
+    });
+
+    it('should trigger invalid event in asynchronous validation', () => {
+      dummy = new Dummy({
+        name: 'Tan'
+      });
+
+      var spy = jasmine.createSpy();
+
+      dummy.on('invalid', spy);
+
+      return dummy.validate().then((result) => {
+        expect(result).toBe(false);
+        expect(spy).toHaveBeenCalledWith(dummy.getErrors());
+      });
+    });
+
+    it('should trigger invalid event in synchronous validation', () => {
+      dummy = new Dummy({
+        name: 'Tan'
+      });
+
+      var spy = jasmine.createSpy();
+
+      dummy.on('invalid', spy);
+
+      dummy.validate({
+        sync: true
+      });
+
+      expect(spy).toHaveBeenCalledWith(dummy.getErrors());
+    });
+  });
+
+  describe('#onBeforeValidate', () => {
+    beforeEach(() => {
+      dummy.name = 'Tan Nguyen';
+
+      spyOn(dummy, 'onBeforeValidate').and.callFake(() => {
         return false;
       });
     });
 
     it('should cancel the validation process by returning false', (done) => {
-      test.validate().then((result) => {
+      dummy.validate().then((result) => {
         expect(result).toBe(false);
       }).then(done, fail);
     });
 
     it('should work in sync mode', () => {
-      var result = test.validate({
+      var result = dummy.validate({
         sync: true
       });
 
@@ -94,130 +184,38 @@ describe('Model', () => {
     });
   });
 
-  describe('#validate', () => {
-    beforeEach(() => {
-      spyOn(console, 'warn').and.callThrough();
-    });
-
-    it('should validate the attributes asynchronously', (done) => {
-      var test = new TestClass({
-        name: 'Tan Nguyen'
-      });
-
-      test.validate().then((result) => {
-        expect(result).toBe(true);
-      }).then(done, fail);
-    });
-
-    it('should validate the attributes synchronously', () => {
-      var test = new TestClass({
-        name: 'Tan Nguyen'
-      });
-
-      expect(test.validate({
-        sync: true
-      })).toBe(true);
-    });
-
-    it('should store errors', (done) => {
-      var test = new TestClass({
-        name: 'Ta1',
-        age: 200
-      });
-
-      test.validate().then((result) => {
-        expect(result).toBe(false);
-        expect(test.getErrors()).toEqual({
-          name: [
-            'name must be greater than 4 characters',
-            'Ta1 is not valid'
-          ],
-          age: ['age must be less than 100 and greater than 0']
-        });
-      }).then(done, fail);
-    });
-
-    it('should validate type and print warning', (done) => {
-      var test = new TestClass({
-        name: 'Tan Nguyen',
-        address: 1
-      });
-
-      test.validate().then((result) => {
-        expect(result).toBe(true);
-        expect(console.warn).toHaveBeenCalledWith('address violates string type validation with value 1 of type number');
-      }).then(done, fail);
-    });
-
-    it('should trigger invalid event in asynchronous validation', (done) => {
-      var test = new TestClass({
-        name: 'Tan'
-      });
-
-      var spy = jasmine.createSpy();
-
-      test.on('invalid', spy);
-
-      test.validate().then((result) => {
-        expect(result).toBe(false);
-        expect(spy).toHaveBeenCalledWith(test.getErrors());
-      }).then(done, fail);
-    });
-
-    it('should trigger invalid event in synchronous validation', () => {
-      var test = new TestClass({
-        name: 'Tan'
-      });
-
-      var spy = jasmine.createSpy();
-
-      test.on('invalid', spy);
-
-      test.validate({
-        sync: true
-      });
-
-      expect(spy).toHaveBeenCalledWith(test.getErrors());
-    });
-  });
-
   describe('#onAfterValidate', () => {
-    var test;
-
     beforeEach(() => {
-      test = new TestClass({
-        name: 'Tan Nguyen'
-      });
+      dummy.name = 'Tan Nguyen';
 
-      spyOn(test, 'onAfterValidate').and.callFake(() => {
+      spyOn(dummy, 'onAfterValidate').and.callFake(() => {
         return false;
       });
     });
 
-    it('should be called after the validation process', (done) => {
-      test.validate().then((result) => {
+    it('should be called after the validation process', () => {
+      return dummy.validate().then((result) => {
         expect(result).toBe(true);
-        expect(test.onAfterValidate).toHaveBeenCalled();
-      }).then(done, fail);
+        expect(dummy.onAfterValidate).toHaveBeenCalled();
+      });
     });
 
     it('should work in sync mode', () => {
-      test.validate({
+      dummy.validate({
         sync: true
       });
 
-      expect(test.onAfterValidate).toHaveBeenCalled();
+      expect(dummy.onAfterValidate).toHaveBeenCalled();
     });
 
     it('should be called only if the validation succeeds', () => {
-      test.age = 200;
+      dummy.age = 200;
 
-      test.validate({
+      dummy.validate({
         sync: true
       });
 
-      expect(test.onAfterValidate).not.toHaveBeenCalled();
+      expect(dummy.onAfterValidate).not.toHaveBeenCalled();
     });
   });
-
 });

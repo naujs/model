@@ -24,15 +24,15 @@ module.exports = function (value) {
 
   if (min !== void 0 && max !== void 0) {
     if (len < min || len > max) {
-      return options.message ? options.message : '%(attribute)s must be less than %(max)d and greater than %(min)d';
+      return options.message ? options.message : '%(property)s must be less than %(max)d and greater than %(min)d';
     }
   } else if (min !== void 0) {
     if (len < min) {
-      return options.message ? options.message : '%(attribute)s must be greater than %(min)d';
+      return options.message ? options.message : '%(property)s must be greater than %(min)d';
     }
   } else if (max !== void 0) {
     if (len > max) {
-      return options.message ? options.message : '%(attribute)s must be less than %(max)d';
+      return options.message ? options.message : '%(property)s must be less than %(max)d';
     }
   }
 

@@ -1,24 +1,73 @@
+'use strict';
+
 var Component = require('@naujs/component')
   , util = require('@naujs/util')
   , _ = require('lodash')
   , validators = require('./validators')
-  , sprintf = require('sprintf-js').sprintf;
+  , sprintf = require('sprintf-js').sprintf
+  , pluralize = require('pluralize');
+
+// Private methods
+// Class
+function getModelName() {
+  let name = this.modelName;
+  if (!name) {
+    throw 'Must set name for a model';
+  }
+  return name;
+}
+
+function getPlural() {
+  let plural = this.plural;
+  if (!plural) {
+    plural = pluralize(getModelName.call(this), 2);
+  }
+  return plural;
+}
+
+function getProperties() {
+  let properties = this.properties || {};
+  if (_.isEmpty(properties)) {
+    console.warn('Empty properties');
+  }
+  return properties;
+}
+
+// Instance
+function buildProperties() {
+  let properties = getProperties.call(this.getClass());
+  _.each(properties, (options, name) => {
+    defineProperty(this, name, options);
+  });
+}
+
+function defineProperty(instance, name, options) {
+  let Model = instance.getClass();
+  let setter = (Model.setters || {})[name];
+  let getter = (Model.getters || {})[name];
+  let defaultValue = (Model.defaults || {})[name];
+
+  Object.defineProperty(instance, name, {
+    get: function() {
+      let value = instance._attributes[name];
+      return getter ? getter(value) : value;
+    },
+
+    set: function(value) {
+      instance._attributes[name] = value;
+    }
+  });
+}
 
 class Model extends Component {
   constructor(attributes = {}) {
     super();
 
+    this._attributes = {};
+    buildProperties.call(this);
+
     this.setAttributes(attributes);
     this._errors = {};
-  }
-
-  /**
-   * Defines all attributes that this model can accept
-   * @method Model#attributes
-   * @return {Object}
-   */
-  attributes() {
-    return {};
   }
 
   /**
@@ -28,14 +77,7 @@ class Model extends Component {
    * @return {Any}
    */
   getAttributes() {
-    let definedAttributes = this.attributes();
-    let currentAttributes = {};
-
-    _.each(definedAttributes, (value, key) => {
-      currentAttributes[key] = this[key];
-    });
-
-    return currentAttributes;
+    return _.clone(this._attributes);
   }
 
   /**
@@ -48,9 +90,9 @@ class Model extends Component {
    * @param {Object}
    */
   setAttributes(attributes = {}) {
-    var definedAttributes = this.attributes();
+    let properties = getProperties.call(this.getClass());
     _.each(attributes, (value, key) => {
-      if (definedAttributes[key]) {
+      if (properties[key]) {
         this[key] = value;
       }
     });
@@ -63,27 +105,27 @@ class Model extends Component {
   }
 
   _typeValidate(options) {
-    let attributes = this.attributes();
+    let properties = getProperties.call(this.getClass());
 
-    _.each(attributes, (attrOpts, attribute) => {
-      if (!attrOpts.type) {
+    _.each(properties, (options, property) => {
+      if (!options.type) {
         return;
       }
 
-      let value = this[attribute];
-      // The attribute is not provided or null, assuming that
-      // the attribute is optional and let the 2nd
+      let value = this[property];
+      // The property is not provided or null, assuming that
+      // the property is optional and let the 2nd
       // phase handle it
       if (value === void(0) || value === null) {
         return;
       }
 
-      if (attrOpts.type(value)) {
+      if (options.type(value)) {
         return;
       }
 
       // The first phase aims to provide extra information for the developers
-      console.warn(`${attribute} violates ${attrOpts.type.name} type validation with value ${value} of type ${typeof value}`);
+      console.warn(`${property} violates ${options.type.name} type validation with value ${value} of type ${typeof value}`);
     });
   }
 
@@ -114,11 +156,11 @@ class Model extends Component {
   }
 
   _validateEachAttribute(fn, sync) {
-    let attributes = this.attributes();
+    let properties = getProperties.call(this.getClass());
 
-    _.each(attributes, (attrOpts, attribute) => {
-      let value = this[attribute];
-      let rules = attrOpts.rules || {};
+    _.each(properties, (options, property) => {
+      let value = this[property];
+      let rules = options.rules || {};
 
       if (_.isEmpty(rules)) {
         return;
@@ -147,18 +189,17 @@ class Model extends Component {
         }
 
         if (result) {
-          msgOpts.attribute = attribute;
+          msgOpts.property = property;
           msgOpts.value = value;
           result = sprintf(result, msgOpts);
         }
 
-        fn(attribute, result);
+        fn(property, result);
       });
     });
   }
 
   _asyncValidate(options = {}) {
-    let attributes = this.attributes();
     let Promise = util.getPromise();
 
     let onBeforeValidate = this.onBeforeValidate(options);
@@ -213,7 +254,6 @@ class Model extends Component {
   }
 
   _syncValidate(options = {}) {
-    let attributes = this.getAttributes();
     let errors = {};
 
     if (!this.onBeforeValidate(options)) {

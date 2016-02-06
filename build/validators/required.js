@@ -9,7 +9,7 @@ module.exports = function (value) {
     options = {};
   }
 
-  var message = options.message || '%(attribute)s is required';
+  var message = options.message || '%(property)s is required';
 
   if (value === void 0) {
     return message;
