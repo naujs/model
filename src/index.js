@@ -8,34 +8,9 @@ var Component = require('@naujs/component')
   , pluralize = require('pluralize');
 
 // Helper methods
-// Class
-function getModelName() {
-  let name = this.modelName;
-  if (!name) {
-    throw 'Must set name for a model';
-  }
-  return name;
-}
-
-function getPluralName() {
-  let plural = this.pluralName;
-  if (!plural) {
-    plural = pluralize(getModelName.call(this), 2);
-  }
-  return plural;
-}
-
-function getProperties() {
-  let properties = this.properties || {};
-  if (_.isEmpty(properties)) {
-    console.warn('Empty properties');
-  }
-  return properties;
-}
-
 // Instance
 function buildProperties() {
-  let properties = getProperties.call(this.getClass());
+  let properties = this.getClass().getProperties();
   _.each(properties, (options, name) => {
     defineProperty(this, name, options);
   });
@@ -60,6 +35,30 @@ function defineProperty(instance, name, options) {
 }
 
 class Model extends Component {
+  static getModelName() {
+    let name = this.modelName;
+    if (!name) {
+      throw 'Must set name for a model';
+    }
+    return name;
+  }
+
+  static getPluralName() {
+    let plural = this.pluralName;
+    if (!plural) {
+      plural = pluralize(this.getModelName(), 2);
+    }
+    return plural;
+  }
+
+  static getProperties() {
+    let properties = this.properties || {};
+    if (_.isEmpty(properties)) {
+      console.warn('Empty properties');
+    }
+    return properties;
+  }
+
   constructor(attributes = {}) {
     super();
 
@@ -90,7 +89,7 @@ class Model extends Component {
    * @param {Object}
    */
   setAttributes(attributes = {}) {
-    let properties = getProperties.call(this.getClass());
+    let properties = this.getClass().getProperties();
     _.each(attributes, (value, key) => {
       if (properties[key]) {
         this[key] = value;
@@ -105,7 +104,7 @@ class Model extends Component {
   }
 
   _typeValidate(options) {
-    let properties = getProperties.call(this.getClass());
+    let properties = this.getClass().getProperties();
 
     _.each(properties, (options, property) => {
       if (!options.type) {
@@ -156,7 +155,7 @@ class Model extends Component {
   }
 
   _validateEachAttribute(fn, sync) {
-    let properties = getProperties.call(this.getClass());
+    let properties = this.getClass().getProperties();
 
     _.each(properties, (options, property) => {
       let value = this[property];
@@ -295,8 +294,5 @@ class Model extends Component {
 }
 
 Model.Types = require('./types');
-Model.getProperties = getProperties;
-Model.getModelName = getModelName;
-Model.getPluralName = getPluralName;
 
 module.exports = Model;

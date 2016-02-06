@@ -18,36 +18,11 @@ var Component = require('@naujs/component'),
     pluralize = require('pluralize');
 
 // Helper methods
-// Class
-function getModelName() {
-  var name = this.modelName;
-  if (!name) {
-    throw 'Must set name for a model';
-  }
-  return name;
-}
-
-function getPluralName() {
-  var plural = this.pluralName;
-  if (!plural) {
-    plural = pluralize(getModelName.call(this), 2);
-  }
-  return plural;
-}
-
-function getProperties() {
-  var properties = this.properties || {};
-  if (_.isEmpty(properties)) {
-    console.warn('Empty properties');
-  }
-  return properties;
-}
-
 // Instance
 function buildProperties() {
   var _this = this;
 
-  var properties = getProperties.call(this.getClass());
+  var properties = this.getClass().getProperties();
   _.each(properties, function (options, name) {
     defineProperty(_this, name, options);
   });
@@ -73,6 +48,35 @@ function defineProperty(instance, name, options) {
 
 var Model = (function (_Component) {
   _inherits(Model, _Component);
+
+  _createClass(Model, null, [{
+    key: 'getModelName',
+    value: function getModelName() {
+      var name = this.modelName;
+      if (!name) {
+        throw 'Must set name for a model';
+      }
+      return name;
+    }
+  }, {
+    key: 'getPluralName',
+    value: function getPluralName() {
+      var plural = this.pluralName;
+      if (!plural) {
+        plural = pluralize(this.getModelName(), 2);
+      }
+      return plural;
+    }
+  }, {
+    key: 'getProperties',
+    value: function getProperties() {
+      var properties = this.properties || {};
+      if (_.isEmpty(properties)) {
+        console.warn('Empty properties');
+      }
+      return properties;
+    }
+  }]);
 
   function Model() {
     var attributes = arguments.length <= 0 || arguments[0] === undefined ? {} : arguments[0];
@@ -119,7 +123,7 @@ var Model = (function (_Component) {
 
       var attributes = arguments.length <= 0 || arguments[0] === undefined ? {} : arguments[0];
 
-      var properties = getProperties.call(this.getClass());
+      var properties = this.getClass().getProperties();
       _.each(attributes, function (value, key) {
         if (properties[key]) {
           _this3[key] = value;
@@ -138,7 +142,7 @@ var Model = (function (_Component) {
     value: function _typeValidate(options) {
       var _this4 = this;
 
-      var properties = getProperties.call(this.getClass());
+      var properties = this.getClass().getProperties();
 
       _.each(properties, function (options, property) {
         if (!options.type) {
@@ -197,7 +201,7 @@ var Model = (function (_Component) {
     value: function _validateEachAttribute(fn, sync) {
       var _this6 = this;
 
-      var properties = getProperties.call(this.getClass());
+      var properties = this.getClass().getProperties();
 
       _.each(properties, function (options, property) {
         var value = _this6[property];
@@ -351,8 +355,5 @@ var Model = (function (_Component) {
 })(Component);
 
 Model.Types = require('./types');
-Model.getProperties = getProperties;
-Model.getModelName = getModelName;
-Model.getPluralName = getPluralName;
 
 module.exports = Model;
