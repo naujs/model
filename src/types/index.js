@@ -1,3 +1,5 @@
 var util = require('@naujs/util');
 
-module.exports = util.setupExports(__dirname);
+var types = util.setupExports(__dirname);
+
+module.exports = types;

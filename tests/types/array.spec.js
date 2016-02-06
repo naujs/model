@@ -10,4 +10,13 @@ describe('array', () => {
     expect(type('123')).toBe(false);
     expect(type({a: 1})).toBe(false);
   });
+
+  it('should return json compatible data', () => {
+    expect(type.toJSON()).toEqual([]);
+  });
+
+  it('should detect valid string representation', () => {
+    expect(type.isValid([])).toBe(true);
+    expect(type.isValid('string')).toBe(false);
+  });
 });

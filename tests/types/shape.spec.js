@@ -50,4 +50,23 @@ describe('shape', () => {
       expect(result).toBe(false);
     });
   });
+
+  it('should return json compatible data', () => {
+    var shape = type({
+      name: string,
+      age: number
+    });
+
+    expect(shape.toJSON()).toEqual({
+      name: 'string',
+      age: 'number'
+    });
+  });
+
+  it('should detect valid string representation', () => {
+    expect(type.isValid({
+      name: string
+    })).toBe(true);
+    expect(type.isValid('string')).toBe(false);
+  });
 });

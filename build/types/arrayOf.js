@@ -1,10 +1,12 @@
+/*eslint func-style:0*/
+
 'use strict';
 
 var _ = require('lodash'),
     isArray = require('./array');
 
-module.exports = function arrayOf(type) {
-  return function (value) {
+function arrayOf(type) {
+  var check = function check(value) {
     if (!type) {
       return false;
     }
@@ -40,4 +42,16 @@ module.exports = function arrayOf(type) {
 
     return true;
   };
+
+  check.toJSON = function () {
+    return [type.toJSON()];
+  };
+
+  return check;
 };
+
+arrayOf.isValid = function (value) {
+  return _.isArray(value) && value.length == 1;
+};
+
+module.exports = arrayOf;

@@ -23,7 +23,7 @@
   "dependencies": {
     "@naujs/component": "0.0.5",
     "@naujs/util": "0.0.3",
-    "lodash": "^3.10.1",
+    "lodash": "^4.2.1",
     "pluralize": "^1.2.1",
     "sprintf-js": "^1.0.3",
     "validator": "^4.4.0"

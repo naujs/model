@@ -1,9 +1,11 @@
 'use strict';
 
+/*eslint func-style:0*/
+
 var _ = require('lodash');
 
-module.exports = function shape(shape) {
-  return function (value) {
+function shape(shape) {
+  var check = function check(value) {
     if (!shape) return false;
     if (_.isEmpty(shape)) return false;
 
@@ -20,4 +22,18 @@ module.exports = function shape(shape) {
 
     return true;
   };
+
+  check.toJSON = function () {
+    return _.chain(shape).toPairs().map(function (pair) {
+      return [pair[0], pair[1].toJSON()];
+    }).fromPairs().value();
+  };
+
+  return check;
 };
+
+shape.isValid = function (value) {
+  return _.isObject(value) && !_.isArray(value);
+};
+
+module.exports = shape;
