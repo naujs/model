@@ -1,5 +1,7 @@
+"use strict";
+
 module.exports = function instanceOf(Cls) {
-  return (value) => {
+  return function (value) {
     return value instanceof Cls;
   };
 };
