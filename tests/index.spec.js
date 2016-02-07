@@ -6,7 +6,6 @@ class Dummy extends Model {
 
 }
 
-Dummy.modelName = 'dummy';
 Dummy.properties = {
   'name': {
     type: Model.Types.string,
@@ -39,6 +38,36 @@ describe('Model', () => {
 
   beforeEach(() => {
     dummy = new Dummy();
+  });
+
+  describe('.getModelName', () => {
+    it('should return class name by default', () => {
+      expect(Dummy.getModelName()).toEqual('Dummy');
+    });
+
+    it('should return custom set name if available', () => {
+      Dummy.modelName = 'test';
+      expect(Dummy.getModelName()).toEqual('test');
+    });
+
+    afterEach(() => {
+      delete Dummy.modelName;
+    });
+  });
+
+  describe('.getPluralName', () => {
+    it('should return plural name using model name', () => {
+      expect(Dummy.getPluralName()).toEqual('Dummies');
+    });
+
+    it('should return custom set name if available', () => {
+      Dummy.pluralName = 'tests';
+      expect(Dummy.getPluralName()).toEqual('tests');
+    });
+
+    afterEach(() => {
+      delete Dummy.pluralName;
+    });
   });
 
   describe('setters/getters', () => {

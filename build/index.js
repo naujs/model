@@ -52,11 +52,7 @@ var Model = (function (_Component) {
   _createClass(Model, null, [{
     key: 'getModelName',
     value: function getModelName() {
-      var name = this.modelName;
-      if (!name) {
-        throw 'Must set name for a model';
-      }
-      return name;
+      return this.modelName || this.name;
     }
   }, {
     key: 'getPluralName',

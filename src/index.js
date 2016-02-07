@@ -36,11 +36,7 @@ function defineProperty(instance, name, options) {
 
 class Model extends Component {
   static getModelName() {
-    let name = this.modelName;
-    if (!name) {
-      throw 'Must set name for a model';
-    }
-    return name;
+    return this.modelName || this.name;
   }
 
   static getPluralName() {
