@@ -40,6 +40,10 @@ describe('Model', () => {
     dummy = new Dummy();
   });
 
+  afterEach(() => {
+    Dummy.clearHooks();
+  });
+
   describe('.getModelName', () => {
     it('should return class name by default', () => {
       expect(Dummy.getModelName()).toEqual('Dummy');
@@ -135,9 +139,17 @@ describe('Model', () => {
   });
 
   describe('#validate', () => {
+    var onBeforeValidate, onAfterValidate;
+
     beforeEach(() => {
       dummy.name = 'Tan Nguyen';
       spyOn(console, 'warn').and.callThrough();
+
+      onBeforeValidate = jasmine.createSpy('onBeforeValidate');
+      onAfterValidate = jasmine.createSpy('onAfterValidate');
+
+      Dummy.watch('beforeValidate', onBeforeValidate);
+      Dummy.watch('afterValidate', onAfterValidate);
     });
 
     it('should validate the attributes asynchronously', () => {
@@ -190,48 +202,21 @@ describe('Model', () => {
         expect(spy).toHaveBeenCalledWith(dummy.getErrors());
       });
     });
-  });
 
-  describe('#onBeforeValidate', () => {
-    beforeEach(() => {
-      dummy.name = 'Tan Nguyen';
-
-      spyOn(dummy, 'onBeforeValidate').and.callFake(() => {
-        return false;
+    it('should trigger beforeValidate hook', () => {
+      let options = {test: 1};
+      return dummy.validate(options).then(() => {
+        expect(onBeforeValidate.calls.count()).toBe(1);
+        expect(onBeforeValidate).toHaveBeenCalledWith(dummy, options);
       });
     });
 
-    it('should cancel the validation process by returning false', (done) => {
-      dummy.validate().then((result) => {
-        expect(result).toBe(false);
-      }).then(done, fail);
-    });
-  });
-
-  describe('#onAfterValidate', () => {
-    beforeEach(() => {
-      dummy.name = 'Tan Nguyen';
-
-      spyOn(dummy, 'onAfterValidate').and.callFake(() => {
-        return false;
+    it('should trigger afterValidate hook', () => {
+      let options = {test: 1};
+      return dummy.validate(options).then(() => {
+        expect(onAfterValidate.calls.count()).toBe(1);
+        expect(onAfterValidate).toHaveBeenCalledWith(true, dummy, options);
       });
-    });
-
-    it('should be called after the validation process', () => {
-      return dummy.validate().then((result) => {
-        expect(result).toBe(true);
-        expect(dummy.onAfterValidate).toHaveBeenCalled();
-      });
-    });
-
-    it('should be called only if the validation succeeds', () => {
-      dummy.age = 200;
-
-      dummy.validate({
-        sync: true
-      });
-
-      expect(dummy.onAfterValidate).not.toHaveBeenCalled();
     });
   });
 });

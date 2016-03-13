@@ -152,18 +152,9 @@ class Model extends Component {
     this._typeValidate(options);
 
     // Phase 2: Value validation
-    let onBeforeValidate = this.onBeforeValidate(options);
-    if (!onBeforeValidate.then) {
-      onBeforeValidate = new Promise((resolve, reject) => {
-        return resolve(onBeforeValidate);
-      });
-    }
+    return this.runHook('beforeValidate', this, options).then(() => {
 
-    return onBeforeValidate.then((result) => {
-      if (!result) {
-        return false;
-      }
-
+    }).then(() => {
       let errors = {};
       let tasks = [];
 
@@ -187,19 +178,9 @@ class Model extends Component {
         return _.isEmpty(this._errors);
       });
     }).then((result) => {
-      if (!result) {
-        return false;
-      }
-
-      let onAfterValidate = this.onAfterValidate(options);
-
-      if (onAfterValidate.then) {
-        return onAfterValidate.then(() => {
-          return true;
-        });
-      }
-
-      return true;
+      return this.runHook('afterValidate', result, this, options).then(() => {
+        return result;
+      });
     }).then((result) => {
       if (!result) {
         this.trigger('invalid', this.getErrors());

@@ -189,26 +189,13 @@ var Model = (function (_Component) {
 
       var options = arguments.length <= 0 || arguments[0] === undefined ? {} : arguments[0];
 
-      options = _.chain(options).clone().defaults({
-        sync: false
-      }).value();
+      options = _.chain(options).clone().defaults({}).value();
 
       // Phase 1: Type validation
       this._typeValidate(options);
 
       // Phase 2: Value validation
-      var onBeforeValidate = this.onBeforeValidate(options);
-      if (!onBeforeValidate.then) {
-        onBeforeValidate = new Promise(function (resolve, reject) {
-          return resolve(onBeforeValidate);
-        });
-      }
-
-      return onBeforeValidate.then(function (result) {
-        if (!result) {
-          return false;
-        }
-
+      return this.runHook('beforeValidate', this, options).then(function () {}).then(function () {
         var errors = {};
         var tasks = [];
 
@@ -232,19 +219,9 @@ var Model = (function (_Component) {
           return _.isEmpty(_this5._errors);
         });
       }).then(function (result) {
-        if (!result) {
-          return false;
-        }
-
-        var onAfterValidate = _this5.onAfterValidate(options);
-
-        if (onAfterValidate.then) {
-          return onAfterValidate.then(function () {
-            return true;
-          });
-        }
-
-        return true;
+        return _this5.runHook('afterValidate', result, _this5, options).then(function () {
+          return result;
+        });
       }).then(function (result) {
         if (!result) {
           _this5.trigger('invalid', _this5.getErrors());
