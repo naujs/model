@@ -5,7 +5,8 @@ var Component = require('@naujs/component')
   , _ = require('lodash')
   , validators = require('./validators')
   , sprintf = require('sprintf-js').sprintf
-  , pluralize = require('pluralize');
+  , pluralize = require('pluralize')
+  , Promise = util.getPromise();
 
 // Helper methods
 // Instance
@@ -18,18 +19,24 @@ function buildProperties() {
 
 function defineProperty(instance, name, options) {
   let Model = instance.getClass();
-  let setter = (Model.setters || {})[name];
-  let getter = (Model.getters || {})[name];
-  let defaultValue = (Model.defaults || {})[name];
 
   Object.defineProperty(instance, name, {
     get: function() {
+      let getter = (Model._getters || {})[name];
+      let defaultValue = (Model._defaults || {})[name];
       let value = instance._attributes[name];
-      return getter ? getter(value) : value;
+      value = getter ? getter(value) : value;
+
+      if (defaultValue && value == undefined) {
+        value = defaultValue;
+      }
+
+      return value;
     },
 
     set: function(value) {
-      instance._attributes[name] = value;
+      let setter = (Model._setters || {})[name];
+      instance._attributes[name] = setter ? setter(value) : value;
     }
   });
 }
@@ -55,6 +62,18 @@ class Model extends Component {
     return properties;
   }
 
+  static setter(property, fn) {
+    this._setters = this._setters || {};
+    this._setters[property] = fn;
+    return this;
+  }
+
+  static getter(property, fn) {
+    this._getters = this._getters || {};
+    this._getters[property] = fn;
+    return this;
+  }
+
   constructor(attributes = {}) {
     super();
 
@@ -66,7 +85,7 @@ class Model extends Component {
   }
 
   /**
-   * Gets all the current attributes. Only those defined in {@link Model#attributes}
+   * Gets all the current attributes. Only those defined in {@link Model.properties}
    * can be get
    * @method Model#getAttributes
    * @return {Any}
@@ -77,7 +96,7 @@ class Model extends Component {
 
   /**
    * Sets attributes for this model. Only those defined
-   * in {@link Model#attributes} can be set
+   * in {@link Model.properties} can be set
    * Due to cross-browser issues, setting the attribute directly
    * via normal this.attributeName is still possible and by-passes all the checks
    * TODO: Apply Proxy to strictly prohibit setting undefined attributes
@@ -126,77 +145,13 @@ class Model extends Component {
 
   validate(options = {}) {
     options = _.chain(options).clone().defaults({
-      sync: false
+
     }).value();
 
     // Phase 1: Type validation
     this._typeValidate(options);
 
     // Phase 2: Value validation
-    if (options.sync) {
-      var result = this._syncValidate(options);
-      if (!result) {
-        this.trigger('invalid', this.getErrors());
-      }
-      return result;
-    }
-
-    return this._asyncValidate(options).then((result) => {
-      if (!result) {
-        this.trigger('invalid', this.getErrors());
-      }
-
-      return result;
-    });
-  }
-
-  _validateEachAttribute(fn, sync) {
-    let properties = this.getClass().getProperties();
-
-    _.each(properties, (options, property) => {
-      let value = this[property];
-      let rules = options.rules || {};
-
-      if (_.isEmpty(rules)) {
-        return;
-      }
-
-      _.each(rules, (ruleOpts, rule) => {
-        let validate = this[rule];
-
-        if (!validate) {
-          validate = validators[rule];
-        }
-
-        if (!validate) {
-          console.warn(`Validator ${rule} does not exist`);
-          return;
-        }
-
-        if (sync && validate.async) {
-          return;
-        }
-
-        let result = validate(value, ruleOpts);
-        let msgOpts = {};
-        if (_.isObject(ruleOpts)) {
-          msgOpts = ruleOpts;
-        }
-
-        if (result) {
-          msgOpts.property = property;
-          msgOpts.value = value;
-          result = sprintf(result, msgOpts);
-        }
-
-        fn(property, result);
-      });
-    });
-  }
-
-  _asyncValidate(options = {}) {
-    let Promise = util.getPromise();
-
     let onBeforeValidate = this.onBeforeValidate(options);
     if (!onBeforeValidate.then) {
       onBeforeValidate = new Promise((resolve, reject) => {
@@ -245,31 +200,53 @@ class Model extends Component {
       }
 
       return true;
+    }).then((result) => {
+      if (!result) {
+        this.trigger('invalid', this.getErrors());
+      }
+
+      return result;
     });
   }
 
-  _syncValidate(options = {}) {
-    let errors = {};
+  _validateEachAttribute(fn) {
+    let properties = this.getClass().getProperties();
 
-    if (!this.onBeforeValidate(options)) {
-      return false;
-    }
+    _.each(properties, (options, property) => {
+      let value = this[property];
+      let rules = options.rules || {};
 
-    this._validateEachAttribute((attribute, errorMsg) => {
-      if (errorMsg) {
-        errors[attribute] = errors[attribute] || [];
-        errors[attribute].push(errorMsg);
+      if (_.isEmpty(rules)) {
+        return;
       }
+
+      _.each(rules, (ruleOpts, rule) => {
+        let validate = this[rule];
+
+        if (!validate) {
+          validate = validators[rule];
+        }
+
+        if (!validate) {
+          console.warn(`Validator ${rule} does not exist`);
+          return;
+        }
+
+        let result = validate(value, ruleOpts);
+        let msgOpts = {};
+        if (_.isObject(ruleOpts)) {
+          msgOpts = ruleOpts;
+        }
+
+        if (result) {
+          msgOpts.property = property;
+          msgOpts.value = value;
+          result = sprintf(result, msgOpts);
+        }
+
+        fn(property, result);
+      });
     });
-
-    this._errors = errors;
-
-    if (!_.isEmpty(this._errors)) {
-      return false;
-    }
-
-    this.onAfterValidate(options);
-    return true;
   }
 
   onAfterValidate(options) {

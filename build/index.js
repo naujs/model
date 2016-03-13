@@ -15,7 +15,8 @@ var Component = require('@naujs/component'),
     _ = require('lodash'),
     validators = require('./validators'),
     sprintf = require('sprintf-js').sprintf,
-    pluralize = require('pluralize');
+    pluralize = require('pluralize'),
+    Promise = util.getPromise();
 
 // Helper methods
 // Instance
@@ -30,18 +31,24 @@ function buildProperties() {
 
 function defineProperty(instance, name, options) {
   var Model = instance.getClass();
-  var setter = (Model.setters || {})[name];
-  var getter = (Model.getters || {})[name];
-  var defaultValue = (Model.defaults || {})[name];
 
   Object.defineProperty(instance, name, {
     get: function get() {
+      var getter = (Model._getters || {})[name];
+      var defaultValue = (Model._defaults || {})[name];
       var value = instance._attributes[name];
-      return getter ? getter(value) : value;
+      value = getter ? getter(value) : value;
+
+      if (defaultValue && value == undefined) {
+        value = defaultValue;
+      }
+
+      return value;
     },
 
     set: function set(value) {
-      instance._attributes[name] = value;
+      var setter = (Model._setters || {})[name];
+      instance._attributes[name] = setter ? setter(value) : value;
     }
   });
 }
@@ -72,6 +79,20 @@ var Model = (function (_Component) {
       }
       return properties;
     }
+  }, {
+    key: 'setter',
+    value: function setter(property, fn) {
+      this._setters = this._setters || {};
+      this._setters[property] = fn;
+      return this;
+    }
+  }, {
+    key: 'getter',
+    value: function getter(property, fn) {
+      this._getters = this._getters || {};
+      this._getters[property] = fn;
+      return this;
+    }
   }]);
 
   function Model() {
@@ -90,7 +111,7 @@ var Model = (function (_Component) {
   }
 
   /**
-   * Gets all the current attributes. Only those defined in {@link Model#attributes}
+   * Gets all the current attributes. Only those defined in {@link Model.properties}
    * can be get
    * @method Model#getAttributes
    * @return {Any}
@@ -104,7 +125,7 @@ var Model = (function (_Component) {
 
     /**
      * Sets attributes for this model. Only those defined
-     * in {@link Model#attributes} can be set
+     * in {@link Model.properties} can be set
      * Due to cross-browser issues, setting the attribute directly
      * via normal this.attributeName is still possible and by-passes all the checks
      * TODO: Apply Proxy to strictly prohibit setting undefined attributes
@@ -176,15 +197,55 @@ var Model = (function (_Component) {
       this._typeValidate(options);
 
       // Phase 2: Value validation
-      if (options.sync) {
-        var result = this._syncValidate(options);
-        if (!result) {
-          this.trigger('invalid', this.getErrors());
-        }
-        return result;
+      var onBeforeValidate = this.onBeforeValidate(options);
+      if (!onBeforeValidate.then) {
+        onBeforeValidate = new Promise(function (resolve, reject) {
+          return resolve(onBeforeValidate);
+        });
       }
 
-      return this._asyncValidate(options).then(function (result) {
+      return onBeforeValidate.then(function (result) {
+        if (!result) {
+          return false;
+        }
+
+        var errors = {};
+        var tasks = [];
+
+        _this5._validateEachAttribute(function (attribute, validationResult) {
+          if (!validationResult.then) {
+            validationResult = new Promise(function (resolve, reject) {
+              resolve(validationResult);
+            });
+          }
+
+          tasks.push(validationResult.then(function (errorMsg) {
+            if (errorMsg) {
+              errors[attribute] = errors[attribute] || [];
+              errors[attribute].push(errorMsg);
+            }
+          }));
+        });
+
+        return Promise.all(tasks).then(function () {
+          _this5._errors = errors;
+          return _.isEmpty(_this5._errors);
+        });
+      }).then(function (result) {
+        if (!result) {
+          return false;
+        }
+
+        var onAfterValidate = _this5.onAfterValidate(options);
+
+        if (onAfterValidate.then) {
+          return onAfterValidate.then(function () {
+            return true;
+          });
+        }
+
+        return true;
+      }).then(function (result) {
         if (!result) {
           _this5.trigger('invalid', _this5.getErrors());
         }
@@ -194,7 +255,7 @@ var Model = (function (_Component) {
     }
   }, {
     key: '_validateEachAttribute',
-    value: function _validateEachAttribute(fn, sync) {
+    value: function _validateEachAttribute(fn) {
       var _this6 = this;
 
       var properties = this.getClass().getProperties();
@@ -219,10 +280,6 @@ var Model = (function (_Component) {
             return;
           }
 
-          if (sync && validate.async) {
-            return;
-          }
-
           var result = validate(value, ruleOpts);
           var msgOpts = {};
           if (_.isObject(ruleOpts)) {
@@ -238,92 +295,6 @@ var Model = (function (_Component) {
           fn(property, result);
         });
       });
-    }
-  }, {
-    key: '_asyncValidate',
-    value: function _asyncValidate() {
-      var _this7 = this;
-
-      var options = arguments.length <= 0 || arguments[0] === undefined ? {} : arguments[0];
-
-      var Promise = util.getPromise();
-
-      var onBeforeValidate = this.onBeforeValidate(options);
-      if (!onBeforeValidate.then) {
-        onBeforeValidate = new Promise(function (resolve, reject) {
-          return resolve(onBeforeValidate);
-        });
-      }
-
-      return onBeforeValidate.then(function (result) {
-        if (!result) {
-          return false;
-        }
-
-        var errors = {};
-        var tasks = [];
-
-        _this7._validateEachAttribute(function (attribute, validationResult) {
-          if (!validationResult.then) {
-            validationResult = new Promise(function (resolve, reject) {
-              resolve(validationResult);
-            });
-          }
-
-          tasks.push(validationResult.then(function (errorMsg) {
-            if (errorMsg) {
-              errors[attribute] = errors[attribute] || [];
-              errors[attribute].push(errorMsg);
-            }
-          }));
-        });
-
-        return Promise.all(tasks).then(function () {
-          _this7._errors = errors;
-          return _.isEmpty(_this7._errors);
-        });
-      }).then(function (result) {
-        if (!result) {
-          return false;
-        }
-
-        var onAfterValidate = _this7.onAfterValidate(options);
-
-        if (onAfterValidate.then) {
-          return onAfterValidate.then(function () {
-            return true;
-          });
-        }
-
-        return true;
-      });
-    }
-  }, {
-    key: '_syncValidate',
-    value: function _syncValidate() {
-      var options = arguments.length <= 0 || arguments[0] === undefined ? {} : arguments[0];
-
-      var errors = {};
-
-      if (!this.onBeforeValidate(options)) {
-        return false;
-      }
-
-      this._validateEachAttribute(function (attribute, errorMsg) {
-        if (errorMsg) {
-          errors[attribute] = errors[attribute] || [];
-          errors[attribute].push(errorMsg);
-        }
-      });
-
-      this._errors = errors;
-
-      if (!_.isEmpty(this._errors)) {
-        return false;
-      }
-
-      this.onAfterValidate(options);
-      return true;
     }
   }, {
     key: 'onAfterValidate',

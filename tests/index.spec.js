@@ -80,6 +80,31 @@ describe('Model', () => {
       dummy.name = 'test';
       expect(dummy.name).toEqual('test');
     });
+
+    it('should support custom setter', () => {
+      Dummy.setter('name', (value) => {
+        return value.toUpperCase();
+      });
+
+      dummy.name = 'test';
+      expect(dummy.name).toEqual('TEST');
+      expect(dummy._attributes.name).toEqual('TEST');
+    });
+
+    it('should support custom getter', () => {
+      Dummy.getter('name', (value) => {
+        return 'getter-' + value.toUpperCase();
+      });
+
+      dummy.name = 'test';
+      expect(dummy.name).toEqual('getter-TEST');
+      expect(dummy._attributes.name).toEqual('test');
+    });
+
+    afterEach(() => {
+      Dummy.setter('name', null);
+      Dummy.getter('name', null);
+    });
   });
 
   describe('#setAttributes', () => {
@@ -119,12 +144,6 @@ describe('Model', () => {
       return dummy.validate().then((result) => {
         expect(result).toBe(true);
       });
-    });
-
-    it('should validate the attributes synchronously', () => {
-      expect(dummy.validate({
-        sync: true
-      })).toBe(true);
     });
 
     it('should store errors', () => {
@@ -171,22 +190,6 @@ describe('Model', () => {
         expect(spy).toHaveBeenCalledWith(dummy.getErrors());
       });
     });
-
-    it('should trigger invalid event in synchronous validation', () => {
-      dummy = new Dummy({
-        name: 'Tan'
-      });
-
-      var spy = jasmine.createSpy();
-
-      dummy.on('invalid', spy);
-
-      dummy.validate({
-        sync: true
-      });
-
-      expect(spy).toHaveBeenCalledWith(dummy.getErrors());
-    });
   });
 
   describe('#onBeforeValidate', () => {
@@ -202,14 +205,6 @@ describe('Model', () => {
       dummy.validate().then((result) => {
         expect(result).toBe(false);
       }).then(done, fail);
-    });
-
-    it('should work in sync mode', () => {
-      var result = dummy.validate({
-        sync: true
-      });
-
-      expect(result).toBe(false);
     });
   });
 
@@ -227,14 +222,6 @@ describe('Model', () => {
         expect(result).toBe(true);
         expect(dummy.onAfterValidate).toHaveBeenCalled();
       });
-    });
-
-    it('should work in sync mode', () => {
-      dummy.validate({
-        sync: true
-      });
-
-      expect(dummy.onAfterValidate).toHaveBeenCalled();
     });
 
     it('should be called only if the validation succeeds', () => {

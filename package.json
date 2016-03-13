@@ -16,13 +16,15 @@
     "url": "https://github.com/naujs/model/issues"
   },
   "homepage": "https://github.com/naujs/model#readme",
+  "optionalDependencies": {
+    "@naujs/component": "latest",
+    "@naujs/gulp-tasks": "latest",
+    "@naujs/util": "latest"
+  },
   "devDependencies": {
-    "@naujs/gulp-tasks": "^0.1.1",
     "gulp": "^3.9.0"
   },
   "dependencies": {
-    "@naujs/component": "0.0.5",
-    "@naujs/util": "0.0.3",
     "lodash": "^4.2.1",
     "pluralize": "^1.2.1",
     "sprintf-js": "^1.0.3",
