@@ -247,6 +247,7 @@ class Model extends Component {
   }
 }
 
+Model.defineProperty = defineProperty;
 Model.Types = require('./types');
 
 module.exports = Model;

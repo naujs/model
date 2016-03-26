@@ -298,6 +298,7 @@ var Model = (function (_Component) {
   return Model;
 })(Component);
 
+Model.defineProperty = defineProperty;
 Model.Types = require('./types');
 
 module.exports = Model;
