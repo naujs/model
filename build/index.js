@@ -74,9 +74,6 @@ var Model = (function (_Component) {
     key: 'getProperties',
     value: function getProperties() {
       var properties = this.properties || {};
-      if (_.isEmpty(properties)) {
-        console.warn('Empty properties');
-      }
       return properties;
     }
   }, {

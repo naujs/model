@@ -56,9 +56,6 @@ class Model extends Component {
 
   static getProperties() {
     let properties = this.properties || {};
-    if (_.isEmpty(properties)) {
-      console.warn('Empty properties');
-    }
     return properties;
   }
 
