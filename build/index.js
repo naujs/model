@@ -94,6 +94,7 @@ var Model = (function (_Component) {
 
   function Model() {
     var attributes = arguments.length <= 0 || arguments[0] === undefined ? {} : arguments[0];
+    var options = arguments.length <= 1 || arguments[1] === undefined ? {} : arguments[1];
 
     _classCallCheck(this, Model);
 
@@ -102,7 +103,7 @@ var Model = (function (_Component) {
     _this2._attributes = {};
     buildProperties.call(_this2);
 
-    _this2.setAttributes(attributes);
+    _this2.setAttributes(attributes, options);
     _this2._errors = {};
     return _this2;
   }

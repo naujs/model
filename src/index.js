@@ -71,13 +71,13 @@ class Model extends Component {
     return this;
   }
 
-  constructor(attributes = {}) {
+  constructor(attributes = {}, options = {}) {
     super();
 
     this._attributes = {};
     buildProperties.call(this);
 
-    this.setAttributes(attributes);
+    this.setAttributes(attributes, options);
     this._errors = {};
   }
 
