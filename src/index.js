@@ -71,13 +71,13 @@ class Model extends Component {
     return this;
   }
 
-  constructor(attributes = {}, options = {}) {
+  constructor(attributes = {}) {
     super();
 
     this._attributes = {};
     buildProperties.call(this);
 
-    this.setAttributes(attributes, options);
+    this.setAttributes(attributes);
     this._errors = {};
   }
 
@@ -111,11 +111,7 @@ class Model extends Component {
     return this;
   }
 
-  onBeforeValidate(options) {
-    return true;
-  }
-
-  _typeValidate(options) {
+  _typeValidate() {
     let properties = this.getClass().getProperties();
 
     _.each(properties, (options, property) => {
@@ -140,16 +136,14 @@ class Model extends Component {
     });
   }
 
-  validate(options = {}) {
-    options = _.chain(options).clone().defaults({
-
-    }).value();
-
+  validate() {
     // Phase 1: Type validation
-    this._typeValidate(options);
+    this._typeValidate();
 
     // Phase 2: Value validation
-    return this.runHook('beforeValidate', this, options).then(() => {
+    return this.runHook('beforeValidate', {
+      instance: this
+    }).then(() => {
 
     }).then(() => {
       let errors = {};
@@ -175,7 +169,10 @@ class Model extends Component {
         return _.isEmpty(this._errors);
       });
     }).then((result) => {
-      return this.runHook('afterValidate', result, this, options).then(() => {
+      return this.runHook('afterValidate', {
+        instance: this,
+        result: result
+      }).then(() => {
         return result;
       });
     }).then((result) => {
@@ -225,10 +222,6 @@ class Model extends Component {
         fn(property, result);
       });
     });
-  }
-
-  onAfterValidate(options) {
-    return true;
   }
 
   getError(attribute) {

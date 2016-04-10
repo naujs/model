@@ -94,7 +94,6 @@ var Model = (function (_Component) {
 
   function Model() {
     var attributes = arguments.length <= 0 || arguments[0] === undefined ? {} : arguments[0];
-    var options = arguments.length <= 1 || arguments[1] === undefined ? {} : arguments[1];
 
     _classCallCheck(this, Model);
 
@@ -103,7 +102,7 @@ var Model = (function (_Component) {
     _this2._attributes = {};
     buildProperties.call(_this2);
 
-    _this2.setAttributes(attributes, options);
+    _this2.setAttributes(attributes);
     _this2._errors = {};
     return _this2;
   }
@@ -148,13 +147,8 @@ var Model = (function (_Component) {
       return this;
     }
   }, {
-    key: 'onBeforeValidate',
-    value: function onBeforeValidate(options) {
-      return true;
-    }
-  }, {
     key: '_typeValidate',
-    value: function _typeValidate(options) {
+    value: function _typeValidate() {
       var _this4 = this;
 
       var properties = this.getClass().getProperties();
@@ -185,15 +179,13 @@ var Model = (function (_Component) {
     value: function validate() {
       var _this5 = this;
 
-      var options = arguments.length <= 0 || arguments[0] === undefined ? {} : arguments[0];
-
-      options = _.chain(options).clone().defaults({}).value();
-
       // Phase 1: Type validation
-      this._typeValidate(options);
+      this._typeValidate();
 
       // Phase 2: Value validation
-      return this.runHook('beforeValidate', this, options).then(function () {}).then(function () {
+      return this.runHook('beforeValidate', {
+        instance: this
+      }).then(function () {}).then(function () {
         var errors = {};
         var tasks = [];
 
@@ -217,7 +209,10 @@ var Model = (function (_Component) {
           return _.isEmpty(_this5._errors);
         });
       }).then(function (result) {
-        return _this5.runHook('afterValidate', result, _this5, options).then(function () {
+        return _this5.runHook('afterValidate', {
+          instance: _this5,
+          result: result
+        }).then(function () {
           return result;
         });
       }).then(function (result) {
@@ -270,11 +265,6 @@ var Model = (function (_Component) {
           fn(property, result);
         });
       });
-    }
-  }, {
-    key: 'onAfterValidate',
-    value: function onAfterValidate(options) {
-      return true;
     }
   }, {
     key: 'getError',

@@ -204,18 +204,21 @@ describe('Model', () => {
     });
 
     it('should trigger beforeValidate hook', () => {
-      let options = {test: 1};
-      return dummy.validate(options).then(() => {
+      return dummy.validate().then(() => {
         expect(onBeforeValidate.calls.count()).toBe(1);
-        expect(onBeforeValidate).toHaveBeenCalledWith(dummy, options);
+        expect(onBeforeValidate).toHaveBeenCalledWith({
+          instance: dummy
+        });
       });
     });
 
     it('should trigger afterValidate hook', () => {
-      let options = {test: 1};
-      return dummy.validate(options).then(() => {
+      return dummy.validate().then(() => {
         expect(onAfterValidate.calls.count()).toBe(1);
-        expect(onAfterValidate).toHaveBeenCalledWith(true, dummy, options);
+        expect(onAfterValidate).toHaveBeenCalledWith({
+          instance: dummy,
+          result: true
+        });
       });
     });
   });
