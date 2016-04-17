@@ -8,28 +8,20 @@ class Dummy extends Model {
 
 Dummy.properties = {
   'name': {
-    type: Model.Types.string,
-    rules: {
-      required: true,
-      len: {
-        min: 4
-      },
-      regex: {
-        pattern: /^Tan\sNguyen$/
-      }
-    }
+    type: 'string',
+    required: true,
+    len: {
+      min: 4
+    },
+    regex: /^Tan\sNguyen$/
   },
   'age': {
-    type: Model.Types.number,
-    rules: {
-      number: {
-        min: 0,
-        max: 100
-      }
-    }
+    type: 'number',
+    min: 0,
+    max: 100
   },
   'address': {
-    type: Model.Types.string
+    type: 'string'
   }
 };
 
@@ -75,12 +67,12 @@ describe('Model', () => {
   });
 
   describe('setters/getters', () => {
-    it('should store attributes in _attributes', () => {
+    it('should store attributes in _properties', () => {
       dummy.name = 'test';
-      expect(dummy._attributes.name).toEqual('test');
+      expect(dummy._properties.name.getValue()).toEqual('test');
     });
 
-    it('should get attributes from _attributes', () => {
+    it('should get attributes from _properties', () => {
       dummy.name = 'test';
       expect(dummy.name).toEqual('test');
     });
@@ -90,9 +82,11 @@ describe('Model', () => {
         return value.toUpperCase();
       });
 
+      dummy = new Dummy();
+
       dummy.name = 'test';
       expect(dummy.name).toEqual('TEST');
-      expect(dummy._attributes.name).toEqual('TEST');
+      expect(dummy._properties.name.getValue()).toEqual('TEST');
     });
 
     it('should support custom getter', () => {
@@ -100,9 +94,11 @@ describe('Model', () => {
         return 'getter-' + value.toUpperCase();
       });
 
+      dummy = new Dummy();
+
       dummy.name = 'test';
       expect(dummy.name).toEqual('getter-TEST');
-      expect(dummy._attributes.name).toEqual('test');
+      expect(dummy._properties.name._value).toEqual('test');
     });
 
     afterEach(() => {
@@ -124,7 +120,7 @@ describe('Model', () => {
   });
 
   describe('#getAttributes', () => {
-    it('should only set attributes that are defined', () => {
+    it('should only get attributes that are defined', () => {
       dummy.setAttributes({
         name: 'Tan Nguyen'
       });
@@ -143,7 +139,6 @@ describe('Model', () => {
 
     beforeEach(() => {
       dummy.name = 'Tan Nguyen';
-      spyOn(console, 'warn').and.callThrough();
 
       onBeforeValidate = jasmine.createSpy('onBeforeValidate');
       onAfterValidate = jasmine.createSpy('onAfterValidate');
@@ -152,43 +147,20 @@ describe('Model', () => {
       Dummy.watch('afterValidate', onAfterValidate);
     });
 
-    it('should validate the attributes asynchronously', () => {
-      return dummy.validate().then((result) => {
-        expect(result).toBe(true);
-      });
-    });
-
-    it('should store errors', () => {
-      dummy = new Dummy({
-        name: 'Ta1',
-        age: 200
-      });
+    it('should validate attributes', () => {
+      dummy.age = 120;
+      dummy.name = 'Tan';
 
       return dummy.validate().then((result) => {
-        expect(result).toBe(false);
+        expect(result).toEqual(false);
         expect(dummy.getErrors()).toEqual({
-          name: [
-            'name must be greater than 4 characters',
-            'Ta1 is not valid'
-          ],
-          age: ['age must be less than 100 and greater than 0']
+          age: ['age must be less than 100 and greater than 0'],
+          name: ['Tan does not match /^Tan\\sNguyen$/']
         });
       });
     });
 
-    it('should validate type and print warning', () => {
-      dummy = new Dummy({
-        name: 'Tan Nguyen',
-        address: 1
-      });
-
-      return dummy.validate().then((result) => {
-        expect(result).toBe(true);
-        expect(console.warn).toHaveBeenCalledWith('address violates string type validation with value 1 of type number');
-      });
-    });
-
-    it('should trigger invalid event in asynchronous validation', () => {
+    it('should trigger invalid event', () => {
       dummy = new Dummy({
         name: 'Tan'
       });

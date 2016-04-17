@@ -2,8 +2,6 @@
 
 var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
 
-function _typeof(obj) { return obj && typeof Symbol !== "undefined" && obj.constructor === Symbol ? "symbol" : typeof obj; }
-
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
 function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
@@ -13,10 +11,9 @@ function _inherits(subClass, superClass) { if (typeof superClass !== "function" 
 var Component = require('@naujs/component'),
     util = require('@naujs/util'),
     _ = require('lodash'),
-    validators = require('./validators'),
-    sprintf = require('sprintf-js').sprintf,
     pluralize = require('pluralize'),
-    Promise = util.getPromise();
+    Promise = util.getPromise(),
+    Property = require('@naujs/property');
 
 // Helper methods
 // Instance
@@ -31,24 +28,16 @@ function buildProperties() {
 
 function defineProperty(instance, name, options) {
   var Model = instance.getClass();
+  instance._properties = instance._properties || {};
+  instance._properties[name] = new Property(name, options);
 
   Object.defineProperty(instance, name, {
     get: function get() {
-      var getter = (Model._getters || {})[name];
-      var defaultValue = (Model._defaults || {})[name];
-      var value = instance._attributes[name];
-      value = getter ? getter(value) : value;
-
-      if (defaultValue && value == undefined) {
-        value = defaultValue;
-      }
-
-      return value;
+      return instance._properties[name].getValue();
     },
 
     set: function set(value) {
-      var setter = (Model._setters || {})[name];
-      instance._attributes[name] = setter ? setter(value) : value;
+      instance._properties[name].setValue(value);
     }
   });
 }
@@ -78,16 +67,22 @@ var Model = (function (_Component) {
     }
   }, {
     key: 'setter',
-    value: function setter(property, fn) {
-      this._setters = this._setters || {};
-      this._setters[property] = fn;
+    value: function setter(name, fn) {
+      var properties = this.getProperties();
+      var prop = properties[name];
+      if (prop) {
+        prop.set = fn;
+      }
       return this;
     }
   }, {
     key: 'getter',
-    value: function getter(property, fn) {
-      this._getters = this._getters || {};
-      this._getters[property] = fn;
+    value: function getter(name, fn) {
+      var properties = this.getProperties();
+      var prop = properties[name];
+      if (prop) {
+        prop.get = fn;
+      }
       return this;
     }
   }]);
@@ -99,7 +94,7 @@ var Model = (function (_Component) {
 
     var _this2 = _possibleConstructorReturn(this, Object.getPrototypeOf(Model).call(this));
 
-    _this2._attributes = {};
+    _this2._properties = {};
     buildProperties.call(_this2);
 
     _this2.setAttributes(attributes);
@@ -117,7 +112,11 @@ var Model = (function (_Component) {
   _createClass(Model, [{
     key: 'getAttributes',
     value: function getAttributes() {
-      return _.clone(this._attributes);
+      return _.chain(this._properties).toPairs().map(function (pair) {
+        var value = pair[1].getValue();
+        if (value === undefined) return null;
+        return [pair[0], value];
+      }).compact().fromPairs().value();
     }
 
     /**
@@ -133,148 +132,64 @@ var Model = (function (_Component) {
   }, {
     key: 'setAttributes',
     value: function setAttributes() {
-      var _this3 = this;
-
       var attributes = arguments.length <= 0 || arguments[0] === undefined ? {} : arguments[0];
 
-      var properties = this.getClass().getProperties();
-      _.each(attributes, function (value, key) {
-        if (properties[key]) {
-          _this3[key] = value;
-        }
+      _.each(this._properties, function (prop, name) {
+        if (attributes[name] !== undefined) prop.setValue(attributes[name]);
       });
 
       return this;
     }
   }, {
-    key: '_typeValidate',
-    value: function _typeValidate() {
-      var _this4 = this;
-
-      var properties = this.getClass().getProperties();
-
-      _.each(properties, function (options, property) {
-        if (!options.type) {
-          return;
-        }
-
-        var value = _this4[property];
-        // The property is not provided or null, assuming that
-        // the property is optional and let the 2nd
-        // phase handle it
-        if (value === void 0 || value === null) {
-          return;
-        }
-
-        if (options.type(value)) {
-          return;
-        }
-
-        // The first phase aims to provide extra information for the developers
-        console.warn(property + ' violates ' + options.type.name + ' type validation with value ' + value + ' of type ' + (typeof value === 'undefined' ? 'undefined' : _typeof(value)));
-      });
-    }
-  }, {
     key: 'validate',
     value: function validate() {
-      var _this5 = this;
+      var _this3 = this;
 
-      // Phase 1: Type validation
-      this._typeValidate();
-
-      // Phase 2: Value validation
       return this.runHook('beforeValidate', {
         instance: this
-      }).then(function () {}).then(function () {
-        var errors = {};
-        var tasks = [];
-
-        _this5._validateEachAttribute(function (attribute, validationResult) {
-          if (!validationResult.then) {
-            validationResult = new Promise(function (resolve, reject) {
-              resolve(validationResult);
-            });
-          }
-
-          tasks.push(validationResult.then(function (errorMsg) {
-            if (errorMsg) {
-              errors[attribute] = errors[attribute] || [];
-              errors[attribute].push(errorMsg);
-            }
-          }));
+      }).then(function () {
+        var promises = _.map(_this3._properties, function (prop, name) {
+          return prop.validate({
+            instance: _this3
+          }).then(function (errors) {
+            if (errors && errors.length) _this3.setError(name, errors);
+          });
         });
 
-        return Promise.all(tasks).then(function () {
-          _this5._errors = errors;
-          return _.isEmpty(_this5._errors);
+        return Promise.all(promises).then(function () {
+          return _this3.getErrors();
         });
+      }).then(function (errors) {
+        if (errors) {
+          _this3.trigger('invalid', _this3.getErrors());
+        }
+
+        return !errors;
       }).then(function (result) {
-        return _this5.runHook('afterValidate', {
-          instance: _this5,
+        return _this3.runHook('afterValidate', {
+          instance: _this3,
           result: result
         }).then(function () {
           return result;
         });
-      }).then(function (result) {
-        if (!result) {
-          _this5.trigger('invalid', _this5.getErrors());
-        }
-
-        return result;
       });
     }
   }, {
-    key: '_validateEachAttribute',
-    value: function _validateEachAttribute(fn) {
-      var _this6 = this;
-
-      var properties = this.getClass().getProperties();
-
-      _.each(properties, function (options, property) {
-        var value = _this6[property];
-        var rules = options.rules || {};
-
-        if (_.isEmpty(rules)) {
-          return;
-        }
-
-        _.each(rules, function (ruleOpts, rule) {
-          var validate = _this6[rule];
-
-          if (!validate) {
-            validate = validators[rule];
-          }
-
-          if (!validate) {
-            console.warn('Validator ' + rule + ' does not exist');
-            return;
-          }
-
-          var result = validate(value, ruleOpts);
-          var msgOpts = {};
-          if (_.isObject(ruleOpts)) {
-            msgOpts = ruleOpts;
-          }
-
-          if (result) {
-            msgOpts.property = property;
-            msgOpts.value = value;
-            result = sprintf(result, msgOpts);
-          }
-
-          fn(property, result);
-        });
-      });
+    key: 'setError',
+    value: function setError(prop, errors) {
+      this._errors = this._errors || {};
+      this._errors[prop] = errors;
+      return this;
     }
   }, {
     key: 'getError',
-    value: function getError(attribute) {
-      return this._errors[attribute];
+    value: function getError(prop) {
+      return (this._errors || {})[prop];
     }
   }, {
     key: 'getErrors',
     value: function getErrors() {
-      return this._errors;
+      return _.isEmpty(this._errors) ? null : this._errors;
     }
   }, {
     key: 'toJSON',
@@ -287,6 +202,5 @@ var Model = (function (_Component) {
 })(Component);
 
 Model.defineProperty = defineProperty;
-Model.Types = require('./types');
 
 module.exports = Model;
