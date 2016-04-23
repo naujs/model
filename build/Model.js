@@ -152,8 +152,8 @@ var Model = (function (_Component) {
         var promises = _.map(_this3._properties, function (prop, name) {
           return prop.validate({
             instance: _this3
-          }).then(function (result) {
-            if (!result) _this3.setError(name, prop.getErrors());
+          }).then(function (errors) {
+            if (errors && errors.length) _this3.setError(name, errors);
           });
         });
 
@@ -165,13 +165,13 @@ var Model = (function (_Component) {
           _this3.trigger('invalid', _this3.getErrors());
         }
 
-        return !errors;
-      }).then(function (result) {
+        return errors;
+      }).then(function (errors) {
         return _this3.runHook('afterValidate', {
           instance: _this3,
-          result: result
+          errors: errors
         }).then(function () {
-          return result;
+          return errors;
         });
       });
     }

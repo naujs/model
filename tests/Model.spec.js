@@ -151,9 +151,8 @@ describe('Model', () => {
       dummy.age = 120;
       dummy.name = 'Tan';
 
-      return dummy.validate().then((result) => {
-        expect(result).toEqual(false);
-        expect(dummy.getErrors()).toEqual({
+      return dummy.validate().then((errors) => {
+        expect(errors).toEqual({
           age: ['age must be less than 100 and greater than 0'],
           name: ['Tan does not match /^Tan\\sNguyen$/']
         });
@@ -169,9 +168,8 @@ describe('Model', () => {
 
       dummy.on('invalid', spy);
 
-      return dummy.validate().then((result) => {
-        expect(result).toBe(false);
-        expect(spy).toHaveBeenCalledWith(dummy.getErrors());
+      return dummy.validate().then((errors) => {
+        expect(spy).toHaveBeenCalledWith(errors);
       });
     });
 
@@ -185,11 +183,11 @@ describe('Model', () => {
     });
 
     it('should trigger afterValidate hook', () => {
-      return dummy.validate().then(() => {
+      return dummy.validate().then((errors) => {
         expect(onAfterValidate.calls.count()).toBe(1);
         expect(onAfterValidate).toHaveBeenCalledWith({
           instance: dummy,
-          result: true
+          errors: errors
         });
       });
     });

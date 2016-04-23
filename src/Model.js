@@ -117,8 +117,8 @@ class Model extends Component {
       var promises = _.map(this._properties, (prop, name) => {
         return prop.validate({
           instance: this
-        }).then((result) => {
-          if (!result) this.setError(name, prop.getErrors());
+        }).then((errors) => {
+          if (errors && errors.length) this.setError(name, errors);
         });
       });
 
@@ -130,13 +130,13 @@ class Model extends Component {
         this.trigger('invalid', this.getErrors());
       }
 
-      return !errors;
-    }).then((result) => {
+      return errors;
+    }).then((errors) => {
       return this.runHook('afterValidate', {
         instance: this,
-        result: result
+        errors: errors
       }).then(() => {
-        return result;
+        return errors;
       });
     });
   }
