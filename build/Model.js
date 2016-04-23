@@ -145,14 +145,15 @@ var Model = (function (_Component) {
     value: function validate() {
       var _this3 = this;
 
+      this._errors = {};
       return this.runHook('beforeValidate', {
         instance: this
       }).then(function () {
         var promises = _.map(_this3._properties, function (prop, name) {
           return prop.validate({
             instance: _this3
-          }).then(function (errors) {
-            if (errors && errors.length) _this3.setError(name, errors);
+          }).then(function (result) {
+            if (!result) _this3.setError(name, prop.getErrors());
           });
         });
 
@@ -201,6 +202,7 @@ var Model = (function (_Component) {
   return Model;
 })(Component);
 
+Model.Property = Property;
 Model.defineProperty = defineProperty;
 
 module.exports = Model;

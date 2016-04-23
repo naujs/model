@@ -110,14 +110,15 @@ class Model extends Component {
   }
 
   validate() {
+    this._errors = {};
     return this.runHook('beforeValidate', {
       instance: this
     }).then(() => {
       var promises = _.map(this._properties, (prop, name) => {
         return prop.validate({
           instance: this
-        }).then((errors) => {
-          if (errors && errors.length) this.setError(name, errors);
+        }).then((result) => {
+          if (!result) this.setError(name, prop.getErrors());
         });
       });
 
