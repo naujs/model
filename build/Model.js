@@ -20,8 +20,13 @@ var Component = require('@naujs/component'),
 function buildProperties() {
   var _this = this;
 
-  var properties = this.getClass().getProperties();
+  var Model = this.getClass();
+  var properties = Model.getProperties();
   _.each(properties, function (options, name) {
+    var setter = (Model._setters || {})[name];
+    var getter = (Model._getters || {})[name];
+    if (setter) options.set = setter;
+    if (getter) options.get = getter;
     defineProperty(_this, name, options);
   });
 }
@@ -62,27 +67,20 @@ var Model = (function (_Component) {
   }, {
     key: 'getProperties',
     value: function getProperties() {
-      var properties = this.properties || {};
-      return properties;
+      return _.result(this, 'properties');
     }
   }, {
     key: 'setter',
     value: function setter(name, fn) {
-      var properties = this.getProperties();
-      var prop = properties[name];
-      if (prop) {
-        prop.set = fn;
-      }
+      this._setters = this._setters || {};
+      this._setters[name] = fn;
       return this;
     }
   }, {
     key: 'getter',
     value: function getter(name, fn) {
-      var properties = this.getProperties();
-      var prop = properties[name];
-      if (prop) {
-        prop.get = fn;
-      }
+      this._getters = this._getters || {};
+      this._getters[name] = fn;
       return this;
     }
   }]);

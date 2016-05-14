@@ -10,8 +10,13 @@ var Component = require('@naujs/component')
 // Helper methods
 // Instance
 function buildProperties() {
-  let properties = this.getClass().getProperties();
+  var Model = this.getClass();
+  let properties = Model.getProperties();
   _.each(properties, (options, name) => {
+    var setter = (Model._setters || {})[name];
+    var getter = (Model._getters || {})[name];
+    if (setter) options.set = setter;
+    if (getter) options.get = getter;
     defineProperty(this, name, options);
   });
 }
@@ -46,25 +51,18 @@ class Model extends Component {
   }
 
   static getProperties() {
-    let properties = this.properties || {};
-    return properties;
+    return _.result(this, 'properties');
   }
 
   static setter(name, fn) {
-    var properties = this.getProperties();
-    var prop = properties[name];
-    if (prop) {
-      prop.set = fn;
-    }
+    this._setters = this._setters || {};
+    this._setters[name] = fn;
     return this;
   }
 
   static getter(name, fn) {
-    var properties = this.getProperties();
-    var prop = properties[name];
-    if (prop) {
-      prop.get = fn;
-    }
+    this._getters = this._getters || {};
+    this._getters[name] = fn;
     return this;
   }
 

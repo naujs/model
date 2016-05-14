@@ -6,23 +6,25 @@ class Dummy extends Model {
 
 }
 
-Dummy.properties = {
-  'name': {
-    type: 'string',
-    required: true,
-    len: {
-      min: 4
+Dummy.properties = function() {
+  return {
+    'name': {
+      type: 'string',
+      required: true,
+      len: {
+        min: 4
+      },
+      regex: /^Tan\sNguyen$/
     },
-    regex: /^Tan\sNguyen$/
-  },
-  'age': {
-    type: 'number',
-    min: 0,
-    max: 100
-  },
-  'address': {
-    type: 'string'
-  }
+    'age': {
+      type: 'number',
+      min: 0,
+      max: 100
+    },
+    'address': {
+      type: 'string'
+    }
+  };
 };
 
 describe('Model', () => {
